@@ -1,0 +1,2 @@
+# 本地部署用的 GitHub token（明文），切勿 commit
+.deploy_token
