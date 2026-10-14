@@ -118,6 +118,11 @@
     font-weight:600;line-height:1.35}
   .history__cat{flex:0 0 auto;font-size:11px;font-weight:700;letter-spacing:.5px;padding:3px 9px;
     border-radius:999px;background:#eef3fb;color:var(--navy)}
+  .history__del{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+    width:clamp(26px,7.5vw,30px);height:clamp(26px,7.5vw,30px);padding:0;border-radius:999px;
+    background:#fff;color:#9aa7b8;border:1px solid var(--line);font-size:17px;font-weight:700;
+    line-height:1;cursor:pointer;transition:.15s}
+  .history__del:hover{background:var(--red);border-color:var(--red);color:#fff;transform:translateY(-1px)}
   .history__empty{color:#9aa7b8;font-size:clamp(13px,3.5vw,14px);padding:18px 4px;text-align:center}
   /* ---------- responsive: 手機自動調整尺寸 ---------- */
   @media (max-width:560px){
@@ -188,6 +193,7 @@ const PRODUCTS = [{"ticker": "2822", "fund": "CSOP FTSE China A50 ETF", "synthet
 const $ = id => document.getElementById(id);
 let pool=[], drawnCount=0, cat='ALL';
 let history=[];                    // 抽取記錄（依抽題順序）
+let currentPick=null;              // 目前結果卡顯示的那一支
 
 const nAll=PRODUCTS.length;
 const nEtf=PRODUCTS.filter(d=>d.cat==='ETF').length;
@@ -201,7 +207,7 @@ function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor
 
 /* ---------- 抽取記錄 ---------- */
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function renderHistory(){
+function renderHistory(scrollBottom){
   const list=$('histList');
   $('histCount').textContent=history.length;
   if(!history.length){ list.innerHTML=''; $('histEmpty').style.display='block'; return; }
@@ -210,11 +216,37 @@ function renderHistory(){
     '<li><span class="history__no">#'+(i+1)+'</span>'+
     '<span class="history__code">'+esc(h.ticker)+'</span>'+
     '<span class="history__name">'+esc(h.fund)+'</span>'+
-    '<span class="history__cat">'+(h.cat==='LI'?'L&amp;I':'ETF')+'</span></li>'
+    '<span class="history__cat">'+(h.cat==='LI'?'L&amp;I':'ETF')+'</span>'+
+    '<button class="history__del" data-idx="'+i+'" type="button"'+
+      ' title="Delete this record and return it to the pool" aria-label="Delete record">&times;</button></li>'
   ).join('');
-  list.scrollTop=list.scrollHeight;   // 自動捲到最新一筆
+  list.querySelectorAll('.history__del').forEach(btn=>{
+    btn.onclick=()=>removeHistory(+btn.dataset.idx);
+  });
+  if(scrollBottom) list.scrollTop=list.scrollHeight;   // 只在新增時自動捲到最新一筆
 }
-function addHistory(p){ history.push(p); renderHistory(); }
+function addHistory(p){ history.push(p); renderHistory(true); }
+
+/* 刪除單筆記錄：把該產品放回抽題池，之後可重新抽到 */
+function removeHistory(i){
+  if(i<0||i>=history.length) return;
+  const item=history.splice(i,1)[0];
+  pool.push(item);                                  // 放回未抽出的池
+  drawnCount=Math.max(0,drawnCount-1);
+  if(currentPick && currentPick.ticker===item.ticker){   // 刪掉的正是目前顯示的結果 → 清空結果卡
+    currentPick=null;
+    $('viewResult').style.display='none';
+    $('viewRolling').style.display='none';
+    $('viewPlaceholder').style.display='block';
+  }
+  renderHistory();
+  updateStats();
+  if(pool.length>0){                                // 池子有東西了 → 解除 Done 狀態
+    $('drawBtn').disabled=false;
+    if($('drawBtn').textContent==='Done') $('drawBtn').textContent='Start';
+    $('done').style.display='none';
+  }
+}
 
 const ROLL_MS=75;                 // 滾動時每幀切換間隔（毫秒）
 let fieldRows=6;                  // 代碼矩陣列數（依視窗寬度自動調整）
@@ -264,6 +296,7 @@ function rebuild(){
   pool=shuffle(listFor(cat));
   drawnCount=0;
   history=[]; renderHistory();
+  currentPick=null;
   updateStats();
   $('viewResult').style.display='none';
   $('viewRolling').style.display='none';
@@ -308,6 +341,7 @@ function stopRoll(){
   $('viewResult').style.display='block';
   $('ticker').innerHTML=pick.ticker+'<small>HKEX 代碼</small>';
   $('fund').textContent=pick.fund;
+  currentPick=pick;
   let tags='<span class="cat-tag">'+(pick.cat==='LI'?'Leveraged &amp; Inverse Product':'Exchange Traded Fund')+'</span>';
   if(pick.synthetic){tags+='<span class="cat-tag warn">Synthetic ETF</span>';}
   $('tags').innerHTML=tags;
