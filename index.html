@@ -357,7 +357,22 @@ $('drawBtn').onclick=()=>{ rolling ? stopRoll() : startRoll(); };
 $('resetBtn').onclick=()=>rebuild();
 $('histClear').onclick=()=>{
   if(!history.length) return;
-  if(confirm('Clear all history records?')){ history=[]; renderHistory(); }
+  if(confirm('Clear all history records and return them to the pool?')){
+    pool=pool.concat(history);                 // 全部放回抽題池
+    drawnCount=Math.max(0,drawnCount-history.length);
+    history=[];
+    currentPick=null;
+    $('viewResult').style.display='none';
+    $('viewRolling').style.display='none';
+    $('viewPlaceholder').style.display='block';
+    renderHistory();
+    updateStats();
+    if(pool.length>0){                           // 池子恢復有東西 → 解除 Done
+      $('drawBtn').disabled=false;
+      if($('drawBtn').textContent==='Done') $('drawBtn').textContent='Start';
+      $('done').style.display='none';
+    }
+  }
 };
 
 document.querySelectorAll('.chip').forEach(ch=>{
