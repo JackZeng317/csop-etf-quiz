@@ -68,8 +68,12 @@
   .rblock{border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 12px;margin-bottom:12px;background:rgba(255,255,255,.03);}
   .rblock .rt{font-weight:700;font-size:14px;display:flex;justify-content:space-between;}
   .rblock .rt small{opacity:.6;font-weight:400;}
-  .rblock .rw{font-size:13px;padding:4px 0;border-top:1px dashed rgba(255,255,255,.08);display:flex;justify-content:space-between;}
-  .rblock .rw span:last-child{opacity:.6;}
+  .rblock .rw{font-size:13px;padding:5px 0;border-top:1px dashed rgba(255,255,255,.08);display:flex;align-items:center;gap:8px;}
+  .rblock .rw .wnm{flex:1;}
+  .rblock .rw .wdp{opacity:.6;min-width:56px;text-align:right;}
+  .rblock .rw .acts{display:flex;gap:4px;}
+  .mini{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;border-radius:6px;cursor:pointer;font-size:12px;padding:2px 6px;line-height:1.2;}
+  .mini:hover{border-color:var(--gold);background:rgba(255,210,74,.16);}
   .empty{opacity:.45;font-size:13px;}
   /* modal */
   .mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;}
@@ -255,14 +259,27 @@ function render(){
   if(!rounds.some(r=>r.winners.length)){ board.innerHTML='<div class="empty">尚無中獎紀錄</div>'; }
   else{
     board.innerHTML="";
-    rounds.forEach(rd=>{
+    rounds.forEach((rd,ri)=>{
       if(!rd.winners.length) return;
       const blk=document.createElement("div"); blk.className="rblock";
       blk.innerHTML=`<div class="rt">${rd.name}<small>${rd.winners.length} 名</small></div>`;
-      rd.winners.forEach(w=>{ const d=document.createElement("div"); d.className="rw";
-        d.innerHTML=`<span>${w.name}</span><span>${w.dept||""}</span>`; blk.appendChild(d); });
+      rd.winners.forEach((w,wi)=>{ const d=document.createElement("div"); d.className="rw";
+        d.innerHTML=`<span class="wnm">${w.name}</span><span class="wdp">${w.dept||""}</span>`+
+          `<span class="acts"><button class="mini" data-rd="${ri}" data-wi="${wi}" data-act="redraw" title="重抽此人中獎">🔄</button>`+
+          `<button class="mini" data-rd="${ri}" data-wi="${wi}" data-act="del" title="刪除此中獎者">✕</button></span>`;
+        blk.appendChild(d); });
       board.appendChild(blk);
     });
+    board.querySelectorAll(".mini").forEach(b=>b.onclick=()=>{
+      const ri=+b.dataset.rd, wi=+b.dataset.wi;
+      b.dataset.act==="del" ? deleteWinner(ri,wi) : redrawWinner(ri,wi);
+    });
+  }
+  // 大屏顯示與中獎榜同步
+  if(!running){
+    const rd=rounds[cur];
+    if(rd && rd.winners.length) showWinners(rd.winners);
+    else $("#display").innerHTML='<div class="rollname" id="rollname">準備開始</div><div class="rolldept" id="rolldept"></div>';
   }
 }
 
@@ -270,7 +287,8 @@ function render(){
 function startDraw(){
   if(running || !pool.length || !rounds.length) return;
   running=true; $("#btnGo").textContent="⏹ 停止"; $("#btnGo").classList.remove("gold");
-  $("#display").classList.add("rolling");
+  $("#display").classList.remove("rolling");
+  $("#display").innerHTML='<div class="rollname" id="rollname"></div><div class="rolldept" id="rolldept"></div>';
   const tick=()=>{
     const i=pool[Math.floor(Math.random()*pool.length)];
     $("#rollname").textContent=participants[i].name;
@@ -287,9 +305,22 @@ function stopDraw(){
   const rd=rounds[cur];
   let need=Math.min(rd.count-rd.winners.length, pool.length);
   if(need<=0){ toast("本輪名額已抽完"); render(); return; }
+  const chosen=pickWinners(need);
+  const set=new Set(chosen);
+  pool = pool.filter(i=>!set.has(i));
+  chosen.forEach(i=> rd.winners.push({name:participants[i].name, dept:participants[i].dept||"", i}));
+  showWinners(rd.winners);
+  if(settings.confetti) fireConfetti();
+  if(settings.sound) playWin();
+  save(); render();
+  if(pool.length===0) toast("🎊 所有名單已抽完！");
+}
+function toggleDraw(){ running?stopDraw():startDraw(); }
+
+/* 從池中選 need 位中獎者（尊重部門均衡設定） */
+function pickWinners(need){
   let chosen=[];
   if(settings.balance && participants.some(p=>p.dept)){
-    // 部門均衡：按部門輪流取，盡量分散
     const byDept={}; pool.forEach(i=>{ (byDept[participants[i].dept||"—"] ||= []).push(i); });
     Object.values(byDept).forEach(a=>shuffle(a));
     const keys=Object.keys(byDept); let ki=0,guard=0;
@@ -298,27 +329,18 @@ function stopDraw(){
       if(arr.length){ chosen.push(arr.pop()); } ki++;
       if(keys.every(k2=>byDept[k2].length===0)) break;
     }
-    // 補足剩餘
     const rest=shuffle(pool.filter(i=>!chosen.includes(i)));
     while(chosen.length<need && rest.length) chosen.push(rest.pop());
   } else {
     chosen = shuffle(pool.slice()).slice(0,need);
   }
-  // 從池中移除
-  const set=new Set(chosen);
-  pool = pool.filter(i=>!set.has(i));
-  chosen.forEach(i=> rd.winners.push({name:participants[i].name, dept:participants[i].dept||""}));
-  // 揭曉
-  const disp=$("#display");
-  disp.innerHTML='<div class="winners">'+
-    chosen.map((i,idx)=>`<div class="winner" style="animation-delay:${idx*0.08}s"><div class="wn">${participants[i].name}</div><div class="wd">${participants[i].dept||""}</div></div>`).join("")+
-    '</div>';
-  if(settings.confetti) fireConfetti();
-  if(settings.sound) playWin();
-  save(); render();
-  if(pool.length===0) toast("🎊 所有名單已抽完！");
+  return chosen;
 }
-function toggleDraw(){ running?stopDraw():startDraw(); }
+/* 大屏揭曉指定中獎清單 */
+function showWinners(list){
+  $("#display").innerHTML='<div class="winners">'+list.map((w,idx)=>
+    `<div class="winner" style="animation-delay:${idx*0.05}s"><div class="wn">${w.name}</div><div class="wd">${w.dept||""}</div></div>`).join("")+'</div>';
+}
 
 /* ---------- 音效（Web Audio，免素材） ---------- */
 let actx=null;
@@ -388,8 +410,34 @@ function exportWinners(){
 function resetRound(){
   const rd=rounds[cur]; if(!rd||!rd.winners.length){ toast("本輪尚無中獎紀錄"); return; }
   if(!confirm(`確定要把「${rd.name}」的 ${rd.winners.length} 位中獎者放回名單池嗎？`)) return;
-  rd.winners.forEach(w=>{ const idx=participants.findIndex(p=>p.name===w.name && (p.dept||"")===(w.dept||"")); if(idx>=0 && !pool.includes(idx)) pool.push(idx); });
+  rd.winners.forEach(w=>{ if(!pool.includes(w.i)) pool.push(w.i); });
   rd.winners=[]; shuffle(pool); save(); render(); toast("已重置本輪");
+}
+/* 單個刪除中獎者：放回名單池 */
+function deleteWinner(ri,wi){
+  const rd=rounds[ri]; if(!rd||!rd.winners[wi]) return;
+  const w=rd.winners[wi];
+  if(!pool.includes(w.i)) pool.push(w.i);
+  rd.winners.splice(wi,1);
+  cur=ri; save(); render();
+  toast(`已將 ${w.name} 放回名單池`);
+}
+/* 單個重抽：原中獎者放回池，再抽一人補位（不會抽到同一人） */
+function redrawWinner(ri,wi){
+  const rd=rounds[ri]; if(!rd||!rd.winners[wi]) return;
+  const w=rd.winners[wi];
+  if(!pool.includes(w.i)) pool.push(w.i);          // 原中獎者先回池
+  rd.winners.splice(wi,1);
+  const drawPool=pool.filter(x=>x!==w.i);          // 避免抽到同一人
+  if(!drawPool.length){ cur=ri; save(); render(); toast("名單池只剩本人，無法換人"); return; }
+  const saved=pool; pool=drawPool; const chosen=pickWinners(1); pool=saved;
+  const ni=chosen[0];
+  rd.winners.splice(wi,0,{name:participants[ni].name, dept:participants[ni].dept||"", i:ni});
+  pool=pool.filter(x=>x!==ni);                      // 新人移出池（原中獎者仍留在池）
+  cur=ri; save(); render();
+  if(settings.confetti) fireConfetti();
+  if(settings.sound) playWin();
+  toast(`已重抽為 ${participants[ni].name}`);
 }
 
 /* ---------- 綁定 ---------- */
