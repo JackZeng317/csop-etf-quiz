@@ -95,6 +95,24 @@
   .stats b{color:var(--navy);font-size:clamp(17px,4.7vw,20px)}
   .done{color:var(--red);font-weight:700;margin-top:14px;font-size:clamp(15px,4vw,17px);display:none}
   footer{text-align:center;color:#9aa7b8;font-size:clamp(12px,3.3vw,13px);padding:14px;line-height:1.7}
+  /* ---------- group selector (A / B) ---------- */
+  .group-sel{display:flex;align-items:center;justify-content:center;gap:clamp(8px,2.4vw,10px);
+    margin-top:clamp(16px,4.5vw,22px);flex-wrap:wrap}
+  .group-sel__label{color:var(--muted);font-size:clamp(13px,3.6vw,14px);font-weight:600;margin-right:2px}
+  .gbtn{border:1px solid var(--line);background:#fff;color:var(--muted);
+    padding:clamp(8px,2.2vw,10px) clamp(16px,5vw,22px);border-radius:999px;cursor:pointer;
+    font-family:inherit;font-size:clamp(14px,3.9vw,15px);font-weight:700;transition:.15s}
+  .gbtn:hover{transform:translateY(-1px)}
+  .gbtn.active{color:#fff;border-color:transparent}
+  .gbtn.active[data-g="A"]{background:var(--navy)}
+  .gbtn.active[data-g="B"]{background:#0e8a6e}
+  .history__grp{flex:0 0 auto;font-size:11px;font-weight:800;letter-spacing:.5px;padding:3px 9px;
+    border-radius:999px;color:#fff}
+  .history__grp.grp-A{background:var(--navy)}
+  .history__grp.grp-B{background:#0e8a6e}
+  .history__groups{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--muted);
+    background:#f1f5fb;border-radius:999px;padding:3px 10px}
+  .history__groups b{color:var(--navy)}
   /* ---------- history (抽取記錄) ---------- */
   .history{width:100%;margin-top:clamp(16px,4.5vw,22px);background:var(--card);
     border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(16,42,76,.07);
@@ -167,6 +185,12 @@
       </div>
     </div>
 
+    <div class="group-sel" id="groupSel">
+      <span class="group-sel__label">Draw for</span>
+      <button type="button" class="gbtn active" data-g="A">Group A</button>
+      <button type="button" class="gbtn" data-g="B">Group B</button>
+    </div>
+
     <div class="controls">
       <button class="btn-draw" id="drawBtn">Start</button>
       <button class="btn-reset" id="resetBtn">Reset</button>
@@ -178,6 +202,7 @@
     <section class="history" id="history">
       <div class="history__head">
         <span class="history__title">History</span>
+        <span class="history__groups" id="histGroups"><b id="cntA">0</b>A · <b id="cntB">0</b>B</span>
         <span class="history__count" id="histCount">0</span>
         <button class="history__clear" id="histClear">Clear</button>
       </div>
@@ -192,7 +217,8 @@
 const PRODUCTS = [{"ticker": "2822", "fund": "CSOP FTSE China A50 ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3199", "fund": "ICBC CSOP FTSE Chinese Government and Policy Bank Bond Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3122", "fund": "CSOP RMB Money Market ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3147", "fund": "CSOP SZSE ChiNext ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3167", "fund": "ICBC CSOP S&P New China Sectors ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3053", "fund": "CSOP Hong Kong Dollar Money Market ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3096", "fund": "CSOP US Dollar Money Market ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3005", "fund": "CSOP CSI 500 ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3033", "fund": "CSOP Hang Seng TECH Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3193", "fund": "CSOP Yinhua CSI 5G Communications Theme ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3109", "fund": "CSOP STAR 50 Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3037", "fund": "CSOP Hang Seng Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3174", "fund": "CSOP Hang Seng Biotech ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3134", "fund": "CSOP Huatai-PB CSI Photovoltaic Industry ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3003", "fund": "CSOP MSCI China A 50 Connect ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3034", "fund": "CSOP NASDAQ 100 ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3004", "fund": "CSOP FTSE Vietnam 30 ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3066", "fund": "CSOP Bitcoin Futures ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3068", "fund": "CSOP Ether Futures ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "2830", "fund": "CSOP Saudi Arabia ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3433", "fund": "CSOP FTSE US Treasury 20+ Years Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3153", "fund": "CSOP Nikkei 225 Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3432", "fund": "CSOP MSCI HK China Connect Select ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3133", "fund": "CSOP Huatai-PB CSI 300 ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3454", "fund": "CSOP MAG Seven ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3441", "fund": "CSOP FTSE East-West Equity Select ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3442", "fund": "CSOP Hang Seng HK-US TECH ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3443", "fund": "CSOP FTSE Hong Kong Equity ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3447", "fund": "CSOP FTSE Asia Pacific Select REITs ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3431", "fund": "CSOP FTSE HK-Korea Tech+ Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3469", "fund": "CSOP Hang Seng Stock Connect High Dividend ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "2802", "fund": "CSOP HSCEI Covered Call Active ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3101", "fund": "CSOP Huatai-PB CSI A500 ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3473", "fund": "CSOP FTSE Asia Tech and Dividend Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3535", "fund": "CSOP Nomura FTSE HK-Japan Equity Cash Flow Focus Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3030", "fund": "CSOP Gold ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3121", "fund": "CSOP KOSPI 200 ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3537", "fund": "CSOP KOSPI 200 Covered Call Active ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3499", "fund": "CSOP Solactive Asia AI Bottleneck Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "3149", "fund": "CSOP Hang Seng Pioneer Technology Index ETF", "synthetic": false, "cat": "ETF"}, {"ticker": "7588", "fund": "CSOP Hang Seng China Enterprises Index Daily (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7288", "fund": "CSOP Hang Seng China Enterprises Index Daily (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7300", "fund": "CSOP Hang Seng Index Daily (-1x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7200", "fund": "CSOP Hang Seng Index Daily (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7500", "fund": "CSOP Hang Seng Index Daily (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7568", "fund": "CSOP NASDAQ-100 Index Daily (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7266", "fund": "CSOP NASDAQ-100 Index Daily (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7299", "fund": "CSOP Gold Futures Daily (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7233", "fund": "CSOP CSI 300 Index Daily (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7552", "fund": "CSOP Hang Seng TECH Index Daily (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7226", "fund": "CSOP Hang Seng TECH Index Daily (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7515", "fund": "CSOP Nikkei 225 Daily (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7262", "fund": "CSOP Nikkei 225 Daily (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7376", "fund": "CSOP Bitcoin Futures Daily (-1x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7788", "fund": "CSOP NVIDIA Daily Max (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7388", "fund": "CSOP NVIDIA Daily Max (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7766", "fund": "CSOP Tesla Daily Max (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7366", "fund": "CSOP Tesla Daily Max (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7711", "fund": "CSOP Coinbase Daily Max (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7311", "fund": "CSOP Coinbase Daily Max (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7799", "fund": "CSOP MicroStrategy Daily Max (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7399", "fund": "CSOP MicroStrategy Daily Max (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7777", "fund": "CSOP Berkshire Daily Max (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7747", "fund": "CSOP Samsung Electronics Daily Max (2x) Leveraged Product", "synthetic": false, "cat": "LI"}, {"ticker": "7347", "fund": "CSOP Samsung Electronics Daily Max (-2x) Inverse Product", "synthetic": false, "cat": "LI"}, {"ticker": "7709", "fund": "CSOP SK Hynix Daily Max (2x) Leveraged Product", "synthetic": false, "cat": "LI"}];
 const $ = id => document.getElementById(id);
 let pool=[], drawnCount=0, cat='ALL';
-let history=[];                    // 抽取記錄（依抽題順序）
+let history=[];                    // 抽取記錄：元素為 {p:產品, g:'A'|'B'}（依抽題順序）
+let currentGroup='A';              // 目前抽題所屬小組
 let currentPick=null;              // 目前結果卡顯示的那一支
 
 const nAll=PRODUCTS.length;
@@ -207,16 +233,23 @@ function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor
 
 /* ---------- 抽取記錄 ---------- */
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function updateGroupCounts(){
+  let a=0,b=0;
+  for(const r of history){ if(r.g==='A')a++; else b++; }
+  $('cntA').textContent=a; $('cntB').textContent=b;
+}
 function renderHistory(scrollBottom){
   const list=$('histList');
   $('histCount').textContent=history.length;
+  updateGroupCounts();
   if(!history.length){ list.innerHTML=''; $('histEmpty').style.display='block'; return; }
   $('histEmpty').style.display='none';
   list.innerHTML=history.map((h,i)=>
     '<li><span class="history__no">#'+(i+1)+'</span>'+
-    '<span class="history__code">'+esc(h.ticker)+'</span>'+
-    '<span class="history__name">'+esc(h.fund)+'</span>'+
-    '<span class="history__cat">'+(h.cat==='LI'?'L&amp;I':'ETF')+'</span>'+
+    '<span class="history__grp grp-'+h.g+'">'+(h.g==='A'?'Group A':'Group B')+'</span>'+
+    '<span class="history__code">'+esc(h.p.ticker)+'</span>'+
+    '<span class="history__name">'+esc(h.p.fund)+'</span>'+
+    '<span class="history__cat">'+(h.p.cat==='LI'?'L&amp;I':'ETF')+'</span>'+
     '<button class="history__del" data-idx="'+i+'" type="button"'+
       ' title="Delete this record and return it to the pool" aria-label="Delete record">&times;</button></li>'
   ).join('');
@@ -225,15 +258,15 @@ function renderHistory(scrollBottom){
   });
   if(scrollBottom) list.scrollTop=list.scrollHeight;   // 只在新增時自動捲到最新一筆
 }
-function addHistory(p){ history.push(p); renderHistory(true); }
+function addHistory(p){ history.push({p, g:currentGroup}); renderHistory(true); }
 
 /* 刪除單筆記錄：把該產品放回抽題池，之後可重新抽到 */
 function removeHistory(i){
   if(i<0||i>=history.length) return;
-  const item=history.splice(i,1)[0];
-  pool.push(item);                                  // 放回未抽出的池
+  const rec=history.splice(i,1)[0];
+  pool.push(rec.p);                                 // 放回未抽出的池
   drawnCount=Math.max(0,drawnCount-1);
-  if(currentPick && currentPick.ticker===item.ticker){   // 刪掉的正是目前顯示的結果 → 清空結果卡
+  if(currentPick && currentPick.ticker===rec.p.ticker){   // 刪掉的正是目前顯示的結果 → 清空結果卡
     currentPick=null;
     $('viewResult').style.display='none';
     $('viewRolling').style.display='none';
@@ -342,7 +375,8 @@ function stopRoll(){
   $('ticker').innerHTML=pick.ticker+'<small>HKEX 代碼</small>';
   $('fund').textContent=pick.fund;
   currentPick=pick;
-  let tags='<span class="cat-tag">'+(pick.cat==='LI'?'Leveraged &amp; Inverse Product':'Exchange Traded Fund')+'</span>';
+  let tags='<span class="history__grp grp-'+currentGroup+'">'+(currentGroup==='A'?'Group A':'Group B')+'</span>';
+  tags+='<span class="cat-tag">'+(pick.cat==='LI'?'Leveraged &amp; Inverse Product':'Exchange Traded Fund')+'</span>';
   if(pick.synthetic){tags+='<span class="cat-tag warn">Synthetic ETF</span>';}
   $('tags').innerHTML=tags;
   const card=$('viewResult');
@@ -358,7 +392,7 @@ $('resetBtn').onclick=()=>rebuild();
 $('histClear').onclick=()=>{
   if(!history.length) return;
   if(confirm('Clear all history records and return them to the pool?')){
-    pool=pool.concat(history);                 // 全部放回抽題池
+    pool=pool.concat(history.map(r=>r.p));      // 全部放回抽題池
     drawnCount=Math.max(0,drawnCount-history.length);
     history=[];
     currentPick=null;
@@ -374,6 +408,15 @@ $('histClear').onclick=()=>{
     }
   }
 };
+
+/* Group A / B 選擇器：決定下一次抽題歸屬哪個小組 */
+document.querySelectorAll('#groupSel .gbtn').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('#groupSel .gbtn').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');
+    currentGroup=btn.dataset.g;
+  };
+});
 
 document.querySelectorAll('.chip').forEach(ch=>{
   ch.onclick=()=>{
