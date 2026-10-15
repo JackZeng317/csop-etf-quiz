@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSOP ETP 管理後台 / Admin</title>
+<style>
+  :root{
+    --navy:#0b1f3a; --navy2:#102a4c; --red:#e2231a; --gold:#f4b400;
+    --ink:#11203a; --muted:#6b7a90; --line:#e4e9f2; --bg:#f3f6fb; --card:#ffffff;
+    --ok:#1f9d55; --warn:#e8a300; --bad:#e2231a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Segoe UI","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    background:linear-gradient(160deg,#eef3fb 0%,#f6f8fc 100%);
+    color:var(--ink); min-height:100vh; padding:clamp(14px,4vw,28px);
+  }
+  .wrap{max-width:1100px;margin:0 auto;}
+  header.top{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    flex-wrap:wrap;margin-bottom:18px;
+  }
+  header.top h1{font-size:clamp(18px,4.5vw,24px);margin:0;color:var(--navy);}
+  header.top .sub{color:var(--muted);font-size:13px;margin-top:2px;}
+  .btn{
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 14px;border-radius:10px;font-size:14px;cursor:pointer;
+    transition:.15s; font-weight:600;
+  }
+  .btn:hover{border-color:var(--navy);}
+  .btn.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .btn.primary:hover{background:var(--navy2);}
+  .btn.ok{background:var(--ok);color:#fff;border-color:var(--ok);}
+  .btn.ghost{background:transparent;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:clamp(14px,3vw,20px);margin-bottom:16px;box-shadow:0 1px 3px rgba(16,42,76,.05);
+  }
+  .card h2{font-size:15px;margin:0 0 12px;color:var(--navy);display:flex;align-items:center;gap:8px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+  input[type=text],input[type=password],select{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;
+    font-size:14px;background:#fff;color:var(--ink);font-family:inherit;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--navy);}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;}
+  .hint a{color:var(--navy);}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;}
+  .stats{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-left:auto;}
+  .stats b{color:var(--navy);font-size:15px;}
+  .status{
+    padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;display:none;
+    border:1px solid var(--line);background:#f8fafc;
+  }
+  .status.show{display:block;}
+  .status.ok{border-color:#bfe6cf;background:#eafaf0;color:#176c3c;}
+  .status.bad{border-color:#f3c6c2;background:#fdecea;color:#a3150c;}
+  .status.info{border-color:#cfe0f5;background:#eef5fe;color:#1b467e;}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:14px;}
+  thead th{
+    background:var(--navy);color:#fff;text-align:left;padding:10px 12px;font-weight:600;
+    font-size:12.5px;white-space:nowrap;position:sticky;top:0;
+  }
+  tbody td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tbody tr:nth-child(even){background:#fafcff;}
+  tbody tr:hover{background:#f0f5ff;}
+  td input[type=text]{padding:7px 9px;}
+  td .cat{width:90px;}
+  .chk{width:18px;height:18px;cursor:pointer;}
+  .rowdel{
+    border:none;background:#fdecea;color:var(--bad);width:30px;height:30px;
+    border-radius:8px;cursor:pointer;font-size:17px;line-height:1;font-weight:700;
+  }
+  .rowdel:hover{background:#f9d4cf;}
+  .tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;font-weight:700;}
+  .tag.syn{background:#fdecea;color:var(--bad);}
+  .tag.off{background:#eee;color:var(--muted);}
+  .empty{padding:30px;text-align:center;color:var(--muted);}
+  .modal-mask{position:fixed;inset:0;background:rgba(8,20,40,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .modal-mask.show{display:flex;}
+  .modal{background:#fff;border-radius:14px;max-width:460px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  .modal h3{margin:0 0 10px;color:var(--navy);font-size:17px;}
+  .modal p{font-size:13.5px;color:var(--ink);line-height:1.6;margin:0 0 16px;}
+  .modal .actions{display:flex;justify-content:flex-end;gap:10px;}
+  footer.foot{color:var(--muted);font-size:12px;text-align:center;margin-top:20px;line-height:1.6;}
+  code{background:#eef2f8;padding:1px 6px;border-radius:5px;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>CSOP ETP 管理後台</h1>
+      <div class="sub">自行更新產品 ticker 與資料 · 直接寫回 GitHub Pages</div>
+    </div>
+    <button class="btn ghost" id="logoutBtn" style="display:none">登出 / Logout</button>
+  </header>
+
+  <!-- 設定 -->
+  <section class="card">
+    <h2>① 連線設定（一次設定，之後自動記住）</h2>
+    <div class="grid">
+      <div>
+        <label>GitHub Personal Access Token（PAT）</label>
+        <input type="password" id="token" placeholder="ghp_... 或 github_pat_..." autocomplete="off">
+        <div class="hint">
+          僅用於呼叫 GitHub API。Token 只存在本機瀏覽器 localStorage，不會上傳到任何第三方。<br>
+          建立方式：GitHub 右上角頭像 → Settings → Developer settings →
+          <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">Personal access tokens</a>
+          → 產生 token，勾選 <code>repo</code>（公開倉庫勾 <code>public_repo</code> 即可）。
+        </div>
+      </div>
+      <div>
+        <label>Repository owner</label>
+        <input type="text" id="owner" value="JackZeng317">
+      </div>
+      <div>
+        <label>Repository name</label>
+        <input type="text" id="repo" value="csop-etf-quiz">
+      </div>
+      <div>
+        <label>Branch</label>
+        <input type="text" id="branch" value="main">
+      </div>
+      <div>
+        <label>資料檔路徑</label>
+        <input type="text" id="path" value="products.json">
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn primary" id="saveSettings">儲存設定</button>
+      <button class="btn" id="loadBtn">讀取資料</button>
+    </div>
+  </section>
+
+  <!-- 工具列 -->
+  <section class="card">
+    <h2>② 編輯產品清單</h2>
+    <div class="toolbar">
+      <button class="btn ok" id="saveBtn" disabled>💾 儲存到 GitHub</button>
+      <button class="btn" id="addBtn" disabled>＋ 新增一列</button>
+      <button class="btn" id="importBtn" disabled>📥 匯入 Excel</button>
+      <button class="btn ghost" id="reloadBtn" disabled>↻ 重新讀取</button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:90px">Ticker</th>
+            <th>Fund Name</th>
+            <th style="width:100px">類別</th>
+            <th style="width:70px">Synthetic</th>
+            <th style="width:70px">啟用</th>
+            <th style="width:50px"></th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="6" class="empty">請先「儲存設定」並「讀取資料」。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="hint" style="margin-top:10px">
+      • <b>類別</b>：ETF 或 L&amp;I（槓桿及反向）。 <b>Synthetic</b>：合成 ETF（交易所買賣基金）。<br>
+      • <b>啟用</b>：取消勾選可讓該產品從抽題池中隱藏（不下架資料，只是不抽）。<br>
+      • <b>匯入 Excel</b>：使用與原始 HR Excel 相同的格式（Table 1 = ETF、Table 2 = L&amp;I），會以 Excel 內容<b>整份取代</b>目前清單。
+    </div>
+  </section>
+
+  <footer class="foot">
+    資料來源：<code>products.json</code> · 儲存後約 1 分鐘 GitHub Pages 會自動重建，抽題網頁即生效。<br>
+    返回 <a href="index.html">抽題網頁 / Quiz</a>
+  </footer>
+</div>
+
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <h3 id="modalTitle">確認</h3>
+    <p id="modalText"></p>
+    <div class="actions">
+      <button class="btn ghost" id="modalCancel">取消</button>
+      <button class="btn primary" id="modalOk">確定</button>
+    </div>
+  </div>
+</div>
+
+<!-- SheetJS 用於 Excel 解析（僅匯入功能需要）；若載入失敗，手動編輯仍可用 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+/* ============================ 設定 / 狀態 ============================ */
+const $ = id => document.getElementById(id);
+const LS_KEY = "csop_admin_cfg_v1";
+let CFG = { token:"", owner:"JackZeng317", repo:"csop-etf-quiz", branch:"main", path:"products.json" };
+let PRODUCTS = [];
+let FILE_SHA = null;
+let DIRTY = false;
+
+function loadCfg(){
+  try{ const s=localStorage.getItem(LS_KEY); if(s) CFG=Object.assign(CFG, JSON.parse(s)); }catch(e){}
+  $("token").value=CFG.token; $("owner").value=CFG.owner; $("repo").value=CFG.repo;
+  $("branch").value=CFG.branch; $("path").value=CFG.path;
+  syncAuthUI();
+}
+function saveCfg(){
+  CFG.token=$("token").value.trim();
+  CFG.owner=$("owner").value.trim(); CFG.repo=$("repo").value.trim();
+  CFG.branch=$("branch").value.trim(); CFG.path=$("path").value.trim();
+  localStorage.setItem(LS_KEY, JSON.stringify(CFG));
+  syncAuthUI();
+  status("設定已儲存。", "ok");
+}
+function syncAuthUI(){
+  const ok = !!(CFG.token && CFG.owner && CFG.repo);
+  ["saveBtn","addBtn","importBtn","reloadBtn"].forEach(id=>$(id).disabled=!ok);
+  $("logoutBtn").style.display = CFG.token ? "inline-block" : "none";
+}
+
+/* ============================ 狀態列 ============================ */
+function status(msg, kind){
+  const el=$("status");
+  el.textContent=msg; el.className="status show"+(kind?" "+kind:"");
+  if(kind==="ok"||kind==="bad"){ setTimeout(()=>{ if(el.textContent===msg) el.classList.remove("show"); }, 4000); }
+}
+
+/* ============================ GitHub API ============================ */
+function apiURL(){
+  return `https://api.github.com/repos/${encodeURIComponent(CFG.owner)}/${encodeURIComponent(CFG.repo)}/contents/${encodeURIComponent(CFG.path)}?ref=${encodeURIComponent(CFG.branch)}`;
+}
+async function ghGet(){
+  const res = await fetch(apiURL(), {
+    headers:{ "Authorization":"Bearer "+CFG.token, "Accept":"application/vnd.github+json" }
+  });
+  if(!res.ok) throw new Error("GET "+res.status+" "+(await res.text()).slice(0,200));
+  const j = await res.json();
+  FILE_SHA = j.sha;
+  const txt = decodeB64utf8(j.content.replace(/\s+/g,""));
+  return JSON.parse(txt);
+}
+async function ghPut(contentStr, message){
+  const body = { message, content: encodeB64utf8(contentStr), branch: CFG.branch };
+  if(FILE_SHA) body.sha = FILE_SHA;
+  const res = await fetch(apiURL(), {
+    method:"PUT",
+    headers:{ "Authorization":"Bearer "+CFG.token, "Accept":"application/vnd.github+json", "Content-Type":"application/json" },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error("PUT "+res.status+" "+(await res.text()).slice(0,300));
+  const j = await res.json();
+  FILE_SHA = j.content.sha;
+  return j;
+}
+/* UTF-8 <-> base64（處理中文） */
+function encodeB64utf8(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin=""; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function decodeB64utf8(b64){
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+/* ============================ 讀取 / 渲染 ============================ */
+async function loadData(){
+  if(!CFG.token){ status("請先填寫並儲存 GitHub Token。","bad"); return; }
+  status("正在讀取 "+CFG.path+" …","info");
+  try{
+    PRODUCTS = await ghGet();
+    if(!Array.isArray(PRODUCTS)) PRODUCTS=[];
+    DIRTY=false;
+    render();
+    status("已讀取 "+PRODUCTS.length+" 支產品。","ok");
+  }catch(e){
+    status("讀取失敗："+e.message,"bad");
+  }
+}
+function render(){
+  const tb=$("tbody");
+  if(!PRODUCTS.length){ tb.innerHTML='<tr><td colspan="6" class="empty">尚無資料，請「匯入 Excel」或「新增一列」。</td></tr>'; }
+  else{
+    tb.innerHTML = PRODUCTS.map((p,i)=>{
+      const ticker=escapeAttr(p.ticker||""), fund=escapeAttr(p.fund||"");
+      const cat=(p.cat==="LI")?"LI":"ETF";
+      const syn=p.synthetic? "checked":"";
+      const act=(p.active!==false)? "checked":"";
+      return `<tr data-i="${i}">
+        <td><input type="text" class="c-ticker" value="${ticker}" maxlength="6"></td>
+        <td><input type="text" class="c-fund" value="${fund}"></td>
+        <td><select class="c-cat cat"><option value="ETF"${cat==="ETF"?" selected":""}>ETF</option><option value="LI"${cat==="LI"?" selected":""}>L&amp;I</option></select></td>
+        <td style="text-align:center"><input type="checkbox" class="c-syn chk" ${syn}></td>
+        <td style="text-align:center"><input type="checkbox" class="c-act chk" ${act}></td>
+        <td style="text-align:center"><button class="rowdel" title="刪除這一列">×</button></td>
+      </tr>`;
+    }).join("");
+  }
+  updateStats();
+}
+function updateStats(){
+  const all=PRODUCTS.length;
+  const etf=PRODUCTS.filter(p=>p.cat!=="LI").length;
+  const li=all-etf;
+  const syn=PRODUCTS.filter(p=>p.synthetic).length;
+  const act=PRODUCTS.filter(p=>p.active!==false).length;
+  $("stats").innerHTML=`<span>共 <b>${all}</b></span><span>ETF <b>${etf}</b></span><span>L&amp;I <b>${li}</b></span><span>Synthetic <b>${syn}</b></span><span>啟用 <b>${act}</b></span>`;
+}
+function escapeAttr(s){ return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* 事件委託：編輯 */
+$("tbody").addEventListener("input", e=>{
+  const tr=e.target.closest("tr"); if(!tr) return; const i=+tr.dataset.i; if(!PRODUCTS[i]) return;
+  if(e.target.classList.contains("c-ticker")) PRODUCTS[i].ticker=e.target.value.trim();
+  else if(e.target.classList.contains("c-fund")) PRODUCTS[i].fund=e.target.value;
+  else if(e.target.classList.contains("c-cat")) PRODUCTS[i].cat=e.target.value;
+  DIRTY=true;
+});
+$("tbody").addEventListener("change", e=>{
+  const tr=e.target.closest("tr"); if(!tr) return; const i=+tr.dataset.i; if(!PRODUCTS[i]) return;
+  if(e.target.classList.contains("c-syn")) PRODUCTS[i].synthetic=e.target.checked;
+  else if(e.target.classList.contains("c-act")) PRODUCTS[i].active=e.target.checked;
+  DIRTY=true; updateStats();
+});
+$("tbody").addEventListener("click", e=>{
+  if(e.target.classList.contains("rowdel")){
+    const tr=e.target.closest("tr"); const i=+tr.dataset.i;
+    PRODUCTS.splice(i,1); DIRTY=true; render();
+  }
+});
+
+/* ============================ 新增 / 刪除 ============================ */
+$("addBtn").onclick=()=>{
+  PRODUCTS.push({ticker:"",fund:"",synthetic:false,cat:"ETF",active:true});
+  DIRTY=true; render();
+  // 捲到最底並聚焦新列
+  const rows=$("tbody").querySelectorAll("tr");
+  if(rows.length){ const last=rows[rows.length-1]; last.scrollIntoView({block:"nearest"}); const inp=last.querySelector(".c-ticker"); if(inp) inp.focus(); }
+};
+
+/* ============================ 儲存 ============================ */
+$("saveBtn").onclick=async()=>{
+  // 基本檢查：ticker 必填且唯一
+  const seen={}; let bad=[];
+  PRODUCTS.forEach((p,i)=>{ const t=(p.ticker||"").trim(); if(!t) bad.push("第"+(i+1)+"列 ticker 空白"); else if(seen[t]) bad.push("ticker 重複："+t); else seen[t]=1; });
+  if(bad.length){ status("無法儲存 — "+bad.slice(0,3).join("；")+(bad.length>3?" …":""),"bad"); return; }
+  const content = JSON.stringify(PRODUCTS.map(p=>({
+    ticker:(p.ticker||"").trim(),
+    fund:(p.fund||"").trim(),
+    synthetic:!!p.synthetic,
+    cat:(p.cat==="LI")?"LI":"ETF",
+    active:(p.active!==false)
+  })), null, 2);
+  status("正在寫入 GitHub …","info");
+  try{
+    await ghPut(content, "Update products.json via admin ("+PRODUCTS.length+" items)");
+    DIRTY=false;
+    status("✅ 已儲存！約 1 分鐘後抽題網頁即更新。","ok");
+  }catch(e){
+    status("儲存失敗："+e.message,"bad");
+  }
+};
+
+/* ============================ 重新讀取 ============================ */
+$("reloadBtn").onclick=()=>{
+  if(DIRTY && !confirm("目前有未儲存的修改，確定要放棄並重新讀取？")) return;
+  loadData();
+};
+
+/* ============================ Excel 匯入 ============================ */
+$("importBtn").onclick=()=>{ if(typeof XLSX==="undefined"){ status("Excel 解析元件（SheetJS）載入失敗，請檢查網路後重整頁面，或改用「新增一列」手動輸入。","bad"); return; } $("fileInput").click(); };
+$("fileInput").addEventListener("change", e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array",cellDates:true});
+      const parsed=extractFromWorkbook(wb);
+      if(!parsed.length){ status("Excel 中找不到任何產品，請確認格式（Table 1=ETF, Table 2=L&I）。","bad"); return; }
+      if(DIRTY && !confirm("匯入會以 Excel 內容整份取代目前清單（未儲存的修改將遺失）。繼續？")) { e.target.value=""; return; }
+      PRODUCTS=parsed; DIRTY=true; render();
+      status("已從 Excel 匯入 "+parsed.length+" 支產品，請檢查後按「儲存到 GitHub」。","ok");
+    }catch(err){ status("Excel 解析失敗："+err.message,"bad"); }
+    e.target.value="";
+  };
+  reader.readAsArrayBuffer(f);
+});
+
+/* ---- 與 Python / 已驗證 Node 版本一致的 Excel 解析邏輯 ---- */
+const NAME_OVERRIDE = { "7300": "CSOP Hang Seng Index Daily (-1x) Inverse Product" };
+const EXTRA_LI = [
+  ["7588", "CSOP Hang Seng China Enterprises Index Daily (-2x) Inverse Product"],
+  ["7288", "CSOP Hang Seng China Enterprises Index Daily (2x) Leveraged Product"],
+];
+function parseTicker(cell){
+  if(cell==null||cell==="") return null;
+  const raw=String(cell).normalize("NFKC");     // ﬁ->fi, 全形->半形
+  if(!/\d/.test(raw)) return null;
+  const extra=raw.includes("-");
+  let t=raw.replace(/\s+/g,""); t=t.split("-")[0];
+  const m=/^(\d{4,5})HK/i.exec(t);
+  if(!m) return null;
+  return [m[1], extra];
+}
+function pickMain(counters){
+  const score=c=>{const code=c[0];return [(code.length===4?0:1),(code[0]==="8"||code[0]==="9")?1:0];};
+  return counters.slice().sort((a,b)=>{const sa=score(a),sb=score(b);return sa[0]-sb[0]||sa[1]-sb[1];})[0][0];
+}
+function cleanName(s){
+  s=String(s).normalize("NFKC");                 // ﬁ->fi
+  s=s.replace(/ /g," ");                        // nbsp
+  let prev; do{prev=s;s=s.replace(/(\d)\s+(\d)/g,"$1$2");}while(s!==prev);
+  s=s.replace(/\(\s*(-?\d+)\s*x\s*\)/g,"($1x)");
+  s=s.replace(/\s+/g," ").trim();
+  return s;
+}
+function extractFromWorkbook(wb){
+  const out=[];
+  function add(ticker,fund,cat){
+    fund=cleanName(fund);
+    const synthetic=/synthetic etf/i.test(fund);
+    const fundShort=fund.replace(/\s*\*\s*\(\*?This is a synthetic ETF\)\s*/g,"").trim();
+    out.push({ticker,fund:fundShort,synthetic,cat,active:true});
+  }
+  // Table 1 : ETF
+  let ws=wb.Sheets["Table 1"];
+  if(ws){
+    let rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,blankrows:false});
+    let curName=null,cur=[];
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i]; const t=r[0],fund=r[1];
+      if(fund!=null&&String(fund).trim()!==""){
+        if(curName&&cur.length) add(pickMain(cur),curName,"ETF");
+        curName=String(fund).trim(); cur=[];
+      }
+      const p=parseTicker(t);
+      if(p&&curName) cur.push(p);
+    }
+    if(curName&&cur.length) add(pickMain(cur),curName,"ETF");
+  }
+  // Table 2 : L&I
+  ws=wb.Sheets["Table 2"];
+  if(ws){
+    let rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,blankrows:false});
+    let curName=null,cur=[];
+    for(const r of rows){
+      const t=r[0],fund=r[1];
+      const p=parseTicker(t);
+      const label=(fund!=null&&String(fund).trim()!=="")?String(fund).trim():"";
+      if(label&&label.toLowerCase()==="fund"){
+        if(curName&&cur.length) add(pickMain(cur),curName,"LI");
+        curName=p?NAME_OVERRIDE[p[0]]:null;
+        cur=p?[p]:[]; continue;
+      }
+      if(label){ if(curName&&cur.length) add(pickMain(cur),curName,"LI"); curName=label; cur=[]; }
+      if(p&&curName) cur.push(p);
+    }
+    if(curName&&cur.length) add(pickMain(cur),curName,"LI");
+  }
+  // 補回 Excel 缺少的兩支
+  const extra=EXTRA_LI.map(([c,n])=>({ticker:c,fund:n,synthetic:false,cat:"LI",active:true}));
+  const firstLi=out.findIndex(d=>d.cat==="LI");
+  out.splice(firstLi<0?out.length:firstLi,0,...extra);
+  return out;
+}
+
+/* ============================ 設定 / 登出 ============================ */
+$("saveSettings").onclick=saveCfg;
+$("loadBtn").onclick=()=>{ saveCfg(); loadData(); };
+$("logoutBtn").onclick=()=>{
+  if(DIRTY && !confirm("有未儲存修改，登出會清除本機 Token，確定？")) return;
+  CFG.token=""; localStorage.setItem(LS_KEY,JSON.stringify(CFG));
+  FILE_SHA=null; PRODUCTS=[];
+  loadCfg(); render();
+  status("已登出（本機 Token 已清除）。","info");
+};
+
+/* ============================ 離開前提醒 ============================ */
+window.addEventListener("beforeunload", e=>{ if(DIRTY){ e.preventDefault(); e.returnValue=""; } });
+
+/* ============================ 初始化 ============================ */
+loadCfg();
+render();
+</script>
+</body>
+</html>
